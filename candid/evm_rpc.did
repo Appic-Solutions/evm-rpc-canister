@@ -85,7 +85,7 @@ type TransactionRequest = record {
   maxPriorityFeePerGas : opt nat;
   maxFeePerGas : opt nat;
   maxFeePerBlobGas : opt nat;
-  accessList: opt vec AccessListEntry;
+  accessList : opt vec AccessListEntry;
   blobVersionedHashes : opt vec text;
   blobs : opt vec text;
   chainId : opt nat;
@@ -167,7 +167,7 @@ type ProviderError = variant {
   MissingRequiredProvider;
   ProviderNotFound;
   NoPermission;
-  InvalidRpcConfig : text ;
+  InvalidRpcConfig : text;
 };
 type ProviderId = nat64;
 type ChainId = nat64;
@@ -214,7 +214,10 @@ type SendRawTransactionResult = variant {
 type CallResult = variant { Ok : text; Err : RpcError };
 type RequestResult = variant { Ok : text; Err : RpcError };
 type RequestCostResult = variant { Ok : nat; Err : RpcError };
-type RpcConfig = record { responseSizeEstimate : opt nat64; responseConsensus : opt ConsensusStrategy };
+type RpcConfig = record {
+  responseSizeEstimate : opt nat64;
+  responseConsensus : opt ConsensusStrategy;
+};
 type ConsensusStrategy = variant {
   Equality;
   Threshold : record {
@@ -289,7 +292,6 @@ service : (InstallArgs) -> {
   eth_call : (RpcServices, opt RpcConfig, CallArgs) -> (MultiCallResult);
   request : (RpcService, json : text, maxResponseBytes : nat64) -> (RequestResult);
   requestCost : (RpcService, json : text, maxResponseBytes : nat64) -> (RequestCostResult) query;
-  
   // DEBUG endpoint to retrieve metrics accumulated by the EVM RPC canister.
   // NOTE: this method exists for debugging purposes, backward compatibility is not guaranteed.
   getMetrics : () -> (Metrics) query;
