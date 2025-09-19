@@ -2,6 +2,7 @@
 //! interface.
 
 use crate::accounting::get_http_request_cost;
+use crate::http_request::IcHttpRequest;
 use crate::logs::{DEBUG, TRACE_HTTP};
 use crate::memory::next_request_id;
 use crate::providers::resolve_rpc_service;
@@ -17,8 +18,7 @@ use evm_rpc_types::{HttpOutcallError, ProviderError, RpcApi, RpcError, RpcServic
 use ic_canister_log::log;
 use ic_cdk::api::call::RejectionCode;
 use ic_cdk::api::management_canister::http_request::{
-    CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs,
-    TransformContext,
+    HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformContext,
 };
 use ic_cdk_macros::query;
 use minicbor::{Decode, Encode};
@@ -209,7 +209,7 @@ where
             })
             .unwrap_or_default();
 
-        let request = CanisterHttpRequestArgument {
+        let request = IcHttpRequest {
             url: url.clone(),
             max_response_bytes: Some(effective_size_estimate),
             method: HttpMethod::POST,
@@ -219,6 +219,7 @@ where
                 "cleanup_response".to_owned(),
                 transform_op,
             )),
+            is_replicated: Some(false),
         };
 
         let response = match http_request(provider, &eth_method, request, effective_size_estimate)
@@ -280,7 +281,7 @@ fn resolve_api(service: &RpcService) -> Result<RpcApi, ProviderError> {
 async fn http_request(
     service: &RpcService,
     method: &str,
-    request: CanisterHttpRequestArgument,
+    request: IcHttpRequest,
     effective_response_size_estimate: u64,
 ) -> Result<HttpResponse, RpcError> {
     let service = resolve_rpc_service(service.clone())?;

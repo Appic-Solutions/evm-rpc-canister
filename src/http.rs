@@ -2,14 +2,14 @@ use crate::{
     accounting::{get_cost_with_collateral, get_http_request_cost},
     add_metric_entry,
     constants::{CONTENT_TYPE_HEADER_LOWERCASE, CONTENT_TYPE_VALUE},
+    http_request::{unreplicated_http_request, IcHttpRequest},
     memory::is_demo_active,
     types::{MetricRpcHost, MetricRpcMethod, ResolvedRpcService},
     util::canonicalize_json,
 };
 use evm_rpc_types::{HttpOutcallError, ProviderError, RpcError, RpcResult, ValidationError};
 use ic_cdk::api::management_canister::http_request::{
-    CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs,
-    TransformContext,
+    HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformContext,
 };
 use num_traits::ToPrimitive;
 
@@ -31,7 +31,7 @@ pub async fn json_rpc_request(
             value: CONTENT_TYPE_VALUE.to_string(),
         });
     }
-    let request = CanisterHttpRequestArgument {
+    let request = IcHttpRequest {
         url: api.url,
         max_response_bytes: Some(max_response_bytes),
         method: HttpMethod::POST,
@@ -41,6 +41,7 @@ pub async fn json_rpc_request(
             "__transform_json_rpc".to_string(),
             vec![],
         )),
+        is_replicated: Some(false),
     };
     http_request(rpc_method, service, request, cycles_cost).await
 }
@@ -48,7 +49,7 @@ pub async fn json_rpc_request(
 pub async fn http_request(
     rpc_method: MetricRpcMethod,
     service: ResolvedRpcService,
-    request: CanisterHttpRequestArgument,
+    request: IcHttpRequest,
     cycles_cost: u128,
 ) -> RpcResult<HttpResponse> {
     let api = service.api();
@@ -87,7 +88,7 @@ pub async fn http_request(
         );
     }
     add_metric_entry!(requests, (rpc_method.clone(), rpc_host.clone()), 1);
-    match ic_cdk::api::management_canister::http_request::http_request(request, cycles_cost).await {
+    match unreplicated_http_request(request, cycles_cost).await {
         Ok((response,)) => {
             let status: u32 = response.status.0.clone().try_into().unwrap_or(0);
             add_metric_entry!(responses, (rpc_method, rpc_host, status.into()), 1);
